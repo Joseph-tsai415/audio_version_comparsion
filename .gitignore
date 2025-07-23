@@ -1,0 +1,13 @@
+
+/*
+!/package.json
+!/.gitignore
+!/README.md
+!/tailwind.config.js
+!/tsconfig.json
+!/server.yml
+
+/*/
+!/public/
+!/src/
+!/doc/
