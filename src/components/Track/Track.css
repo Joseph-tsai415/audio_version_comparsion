@@ -1,0 +1,46 @@
+/* Hide scrollbar but keep functionality */
+.track-waveform-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.track-waveform-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Custom timeline styles */
+.timeline-container {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6));
+  backdrop-filter: blur(8px);
+}
+
+/* Cursor animation */
+@keyframes pulse-cursor {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.playback-cursor {
+  animation: pulse-cursor 2s ease-in-out infinite;
+}
+
+/* Track hover effects */
+.track-container {
+  transition: all 0.3s ease;
+}
+
+.track-container:hover {
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1);
+}
+
+/* Smooth waveform transitions */
+.waveform-container {
+  transition: transform 0.1s ease-out;
+}
