@@ -1,3 +1,8 @@
+# Audio Compare - Professional Audio A/B Testing Tool
 # https://www.robotstxt.org/robotstxt.html
+
 User-agent: *
-Disallow:
+Allow: /
+
+# Sitemap
+Sitemap: /sitemap.xml

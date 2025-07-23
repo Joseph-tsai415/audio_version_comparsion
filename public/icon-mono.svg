@@ -1,0 +1,35 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="192" height="192" rx="45" fill="#0f172a"/>
+  
+  <!-- Container outline -->
+  <rect x="24" y="48" width="144" height="96" rx="12" stroke="#64748b" stroke-width="1" fill="none" opacity="0.3"/>
+  
+  <!-- Simplified waveform representation -->
+  <g opacity="0.8">
+    <!-- Track 1 -->
+    <path d="M36 72 L42 66 L48 78 L54 60 L60 84 L66 54 L72 78 L78 48 L84 90 L90 51 L96 81 L102 57 L108 87 L114 63 L120 75 L126 69 L132 81 L138 72 L144 78 L150 75" 
+          stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Track 2 -->
+    <path d="M36 96 L42 90 L48 102 L54 84 L60 108 L66 78 L72 102 L78 72 L84 114 L90 75 L96 105 L102 81 L108 111 L114 87 L120 99 L126 93 L132 105 L138 96 L144 102 L150 99" 
+          stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Track 3 -->
+    <path d="M36 120 L42 114 L48 126 L54 108 L60 132 L66 102 L72 126 L78 96 L84 138 L90 99 L96 129 L102 105 L108 135 L114 111 L120 123 L126 117 L132 129 L138 120 L144 126 L150 123" 
+          stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  
+  <!-- Playback cursor -->
+  <line x1="105" y1="54" x2="105" y2="138" stroke="#f1f5f9" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Cursor indicators -->
+  <circle cx="105" cy="72" r="3" fill="#f1f5f9"/>
+  <circle cx="105" cy="96" r="3" fill="#f1f5f9"/>
+  <circle cx="105" cy="120" r="3" fill="#f1f5f9"/>
+  
+  <!-- Track indicators -->
+  <circle cx="30" cy="72" r="2" fill="#94a3b8"/>
+  <circle cx="30" cy="96" r="2" fill="#cbd5e1"/>
+  <circle cx="30" cy="120" r="2" fill="#64748b"/>
+</svg>

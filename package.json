@@ -1,7 +1,11 @@
 {
-  "name": "audio_compare",
+  "name": "audio-compare",
   "version": "0.1.0",
   "private": true,
+  "description": "Professional audio comparison tool for A/B testing multiple audio mixes in real-time",
+  "keywords": ["audio", "comparison", "a/b testing", "waveform", "music production", "audio analysis"],
+  "author": "Audio Compare Team",
+  "homepage": ".",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
