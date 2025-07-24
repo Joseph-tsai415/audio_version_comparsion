@@ -4,6 +4,7 @@ Professional audio comparison tool for A/B testing multiple audio mixes in real-
 
 ![Audio Compare Preview](public/icon.svg)
 
+
 ## Features
 
 - **Real-time Audio Comparison**: Compare multiple audio tracks with synchronized playback
@@ -87,7 +88,7 @@ Built with Create React App and following modern React patterns:
 
 ## License
 
-© 2025 Audio Compare Team. All rights reserved.
+© 2025 Joseph Team. All rights reserved.
 
 ---
 
