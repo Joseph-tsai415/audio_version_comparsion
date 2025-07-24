@@ -62,15 +62,15 @@ function App() {
 
         {/* Main content */}
         <main className="relative z-10 container mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            {/* Left sidebar */}
-            <div className="xl:col-span-4 space-y-6">
+          <div className="grid grid-cols-10 gap-6 h-full">
+            {/* Left sidebar - 30% */}
+            <div className="col-span-3 flex flex-col gap-6">
               <TrackList />
               <PlaybackControls />
             </div>
 
-            {/* Main content area */}
-            <div className="xl:col-span-8">
+            {/* Main content area - 70% */}
+            <div className="col-span-7 h-full">
               <WaveformDisplay />
             </div>
           </div>

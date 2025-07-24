@@ -52,9 +52,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
+    // Enforce track limit
+    const trackLimit = 10;
+    if (tracks.length >= trackLimit) {
+      alert(`Maximum ${trackLimit} tracks allowed. Remove some tracks to add more.`);
+      return;
+    }
+
     const id = Date.now().toString();
     const url = URL.createObjectURL(file);
-    const color = TRACK_COLORS[tracks.length % TRACK_COLORS.length];
+    // Use a unique color index based on current timestamp to avoid duplicates when loading simultaneously
+    const colorIndex = (Date.now() + tracks.length) % TRACK_COLORS.length;
+    const color = TRACK_COLORS[colorIndex];
 
     const audio = new Audio(url);
     audio.volume = playbackState.volume;
@@ -84,9 +93,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (audio.buffered.length > 0) {
         const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
         const bufferedAmount = bufferedEnd / audio.duration;
-        if (playbackState.activeTrackId === id) {
-          setPlaybackState(prev => ({ ...prev, buffered: bufferedAmount }));
-        }
+        setPlaybackState(prev => {
+          if (prev.activeTrackId === id) {
+            return { ...prev, buffered: bufferedAmount };
+          }
+          return prev;
+        });
       }
     });
 
@@ -114,7 +126,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         duration: audio.duration,
       }));
     }
-  }, [tracks.length, playbackState.activeTrackId, playbackState.volume, playbackState.playbackRate, playbackState.loop]);
+  }, [tracks.length, playbackState.activeTrackId, playbackState.volume, playbackState.playbackRate]);
 
   const removeTrack = useCallback((id: string) => {
     const audio = audioRefs.current.get(id);
@@ -203,11 +215,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return;
         }
         
+        // Verify audio is ready before attempting play
+        if (currentAudioCheck.readyState < 2) {
+          console.warn(`Audio not ready for track ${id}, skipping play`);
+          return;
+        }
+        
         console.log(`Attempting to play track ${id}`);
         currentPlayingRef.current = id;
-        
-        // Set isPlaying to true before attempting play
-        setPlaybackState((prev) => ({ ...prev, isPlaying: true }));
         
         // Force a fresh play attempt
         currentAudioCheck.currentTime = currentTime; // Re-set the time
@@ -220,12 +235,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           playPromise.then(() => {
             console.log(`Successfully playing track ${id}, paused: ${currentAudioCheck.paused}, currentTime: ${currentAudioCheck.currentTime}, readyState: ${currentAudioCheck.readyState}`);
             
+            // Only set playing state after successful play
+            setPlaybackState((prev) => ({ ...prev, isPlaying: true }));
+            
             // Start time tracking
             const updateTime = () => {
-              const audioToCheck = audioRefs.current.get(id);
-              if (currentPlayingRef.current === id && audioToCheck && !audioToCheck.paused) {
+              // Re-verify track ID to prevent stale updates
+              const currentTrackId = currentPlayingRef.current;
+              const audioToCheck = audioRefs.current.get(currentTrackId || '');
+              if (currentTrackId === id && audioToCheck && !audioToCheck.paused) {
                 setPlaybackState((prev) => {
-                  if (prev.activeTrackId === id) {
+                  if (prev.activeTrackId === currentTrackId) {
                     return { ...prev, currentTime: audioToCheck.currentTime };
                   }
                   return prev;
@@ -283,10 +303,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         
         // Start time tracking
         const updateTime = () => {
-          if (currentPlayingRef.current === trackId && !audio.paused) {
+          // Re-verify track ID to prevent stale updates
+          const currentTrackId = currentPlayingRef.current;
+          const audioToCheck = audioRefs.current.get(currentTrackId || '');
+          if (currentTrackId === trackId && audioToCheck && !audioToCheck.paused) {
             setPlaybackState((prev) => {
-              if (prev.activeTrackId === trackId) {
-                return { ...prev, currentTime: audio.currentTime };
+              if (prev.activeTrackId === currentTrackId) {
+                return { ...prev, currentTime: audioToCheck.currentTime };
               }
               return prev;
             });

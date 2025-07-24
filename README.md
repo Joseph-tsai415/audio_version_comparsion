@@ -1,95 +1,198 @@
 # Audio Compare 🎵
 
-Professional audio comparison tool for A/B testing multiple audio mixes in real-time with synchronized playback and visual waveform representations.
+Professional-grade web application for real-time A/B comparison of multiple audio tracks. Built for audio engineers, music producers, and anyone who needs to compare different audio mixes with precision.
 
-![Audio Compare Preview](public/icon.svg)
+![Audio Compare Interface](public/app-icon-192.svg)
 
+## ✨ Features
 
-## Features
+### Core Functionality
+- **Real-time A/B Testing**: Instantly switch between tracks while maintaining playback position
+- **Visual Waveform Analysis**: High-resolution waveform visualization powered by WaveSurfer.js v7
+- **Synchronized Playback**: Seamless track switching with perfect time synchronization
+- **Professional Controls**: Volume, mute/unmute, playback speed (0.5x - 2x)
+- **Precision Timeline**: Navigate with frame-accurate timeline and time markers
 
-- **Real-time Audio Comparison**: Compare multiple audio tracks with synchronized playback
-- **Visual Waveform Display**: Interactive waveform visualization using WaveSurfer.js
-- **A/B Testing**: Seamless switching between different audio versions
-- **Timeline Navigation**: Precise timeline with time markers and cursor following
-- **Drag & Drop Support**: Easy file upload with drag and drop interface
-- **Zoom & Pan**: Mouse wheel zoom and horizontal scrolling for detailed analysis
-- **Marker System**: Add custom markers with labels for important sections
-- **Modern UI**: Dark theme with glassmorphism effects and smooth animations
-- **Professional Grade**: Support for high-quality audio files up to 512MB
+### Advanced Features
+- **Marker System**: Add color-coded markers with labels for important sections
+- **Region Selection**: Shift+drag to select and highlight audio regions
+- **Zoom & Pan**: Mouse wheel zoom with horizontal scrolling for detailed analysis
+- **Buffering Indicator**: Real-time loading progress for each track
+- **Keyboard Shortcuts**: Full keyboard control for professional workflow
+- **Drag & Drop**: Easy file upload with visual feedback
+- **Responsive Design**: Works on desktop and tablet devices
 
-## Technology Stack
+### Audio Format Support
+- **Lossless**: WAV, FLAC, AIFF
+- **Compressed**: MP3, AAC, OGG
+- **File Size**: Up to 512MB per track
+- **Track Limit**: Up to 10 simultaneous tracks
 
-- **React 19** with TypeScript
-- **WaveSurfer.js v7** for audio waveform visualization
-- **Tailwind CSS v3** for modern styling
-- **Web Audio API** for audio processing
-- **HTML5 Audio** for playback control
+## 🚀 Quick Start
 
-## Quick Start
+### Prerequisites
+- Node.js 16.x or higher
+- npm 7.x or higher
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/audio-compare.git
+cd audio-compare
+
 # Install dependencies
 npm install
 
-# Start development server (http://localhost:3000)
+# Start development server
 npm start
-
-# Build for production
-npm run build
-
-# Run tests
-npm test
 ```
 
-## Usage
+The application will open at [http://localhost:3000](http://localhost:3000)
 
-1. **Upload Audio Files**: Drag and drop multiple audio files or click to browse
-2. **Compare Tracks**: Click between tracks to switch active playback
-3. **Navigate Timeline**: Use the timeline to jump to specific positions
-4. **Zoom & Scroll**: Mouse wheel to zoom, drag to scroll horizontally
-5. **Add Markers**: Double-click to add markers at specific positions
-6. **Adjust Playback**: Control volume, playback speed, and loop settings
+### Production Build
 
-## Supported Formats
+```bash
+# Create optimized production build
+npm run build
 
-- WAV, FLAC, AIFF (lossless formats)
-- MP3, AAC, OGG (compressed formats)
-- Maximum file size: 512MB per track
+# Preview production build locally
+npx serve -s build
+```
 
-## Browser Compatibility
+## 🎯 Usage Guide
 
-- Chrome 90+
-- Firefox 88+  
-- Safari 14+
-- Edge 90+
+### Basic Workflow
+1. **Upload Tracks**: Drag and drop audio files or click to browse
+2. **Compare**: Click track names or use number keys (1-9) to switch
+3. **Navigate**: Click timeline or use arrow keys for precise control
+4. **Analyze**: Zoom with mouse wheel, pan by dragging
 
-## Development
+### Keyboard Shortcuts
+| Key | Action |
+|-----|--------|
+| `Space` | Play/Pause |
+| `←/→` | Skip backward/forward 5 seconds |
+| `↑/↓` | Previous/Next track |
+| `1-9` | Switch to track 1-9 |
+| `0` | Switch to track 10 |
+| `M` | Mute/Unmute |
+| `+/-` | Zoom in/out |
+| `Shift+Click` | Add marker |
+| `?` | Show keyboard shortcuts |
 
-Built with Create React App and following modern React patterns:
+### Pro Tips
+- Hold Shift while dragging to select regions
+- Double-click waveform to add markers
+- Use Tab/Shift+Tab for keyboard navigation
+- Hover over waveform to see time position
 
-- Context API for state management
-- Custom hooks for audio control
-- TypeScript for type safety
-- Performance optimizations with React.memo and useMemo
+## 🛠️ Technical Architecture
 
-## Architecture
+### Technology Stack
+- **Frontend Framework**: React 19.1 with TypeScript 4.9
+- **Audio Visualization**: WaveSurfer.js v7.10
+- **Styling**: Tailwind CSS v3 with custom theme
+- **State Management**: React Context API
+- **Build Tool**: Create React App
+- **Deployment**: AWS Amplify ready
 
-### Core Components
-- **AudioContext**: Central state management for audio operations
-- **WaveformDisplay**: Container for track display and interactions
-- **Track**: Individual track component with waveform and timeline
-- **PlaybackControls**: Universal controls for playback management
+### Performance Optimizations
+- React.memo for component optimization
+- RequestAnimationFrame for smooth updates
+- Lazy loading for audio data
+- Efficient waveform rendering
 
-### Key Features Implementation
-- **Synchronized Playback**: HTML5 Audio elements with precise timing
-- **Anti-clipping Timeline**: Uses `calc()` positioning to prevent label cutoff
-- **Modern Positioning**: All interactive elements use consistent anti-clipping formulas
-- **Performance Optimized**: React.memo, useMemo, and useCallback throughout
+## 📦 Deployment
 
-## License
+### AWS Amplify
+
+The project includes `amplify.yml` configuration for automated deployment:
+
+```yaml
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: build
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .npm/**/*
+```
+
+### Environment Variables
+
+Optional environment variables for future features:
+- `REACT_APP_API_URL` - Backend API endpoint
+- `REACT_APP_ANALYTICS_ID` - Analytics tracking ID
+
+## 🔧 Development
+
+### Project Structure
+```
+src/
+├── components/         # React components
+├── contexts/          # React Context providers
+├── hooks/            # Custom React hooks
+├── types/            # TypeScript definitions
+├── App.tsx           # Main application component
+├── index.tsx         # Application entry point
+└── index.css         # Global styles
+```
+
+### Available Scripts
+```bash
+npm start          # Development server
+npm run build      # Production build
+npm test           # Run tests (setup required)
+npm run eject      # Eject from CRA (one-way operation)
+```
+
+### Code Style
+- TypeScript with strict mode enabled
+- Functional components with hooks
+- Tailwind CSS for styling
+- ESLint for code quality
+
+## 🌐 Browser Compatibility
+
+| Browser | Minimum Version |
+|---------|----------------|
+| Chrome | 90+ |
+| Firefox | 88+ |
+| Safari | 14+ |
+| Edge | 90+ |
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
 
 © 2025 Joseph Team. All rights reserved.
 
+This project is proprietary software. Unauthorized copying, modification, distribution, or use of this software, via any medium, is strictly prohibited without express written permission.
+
+## 🙏 Acknowledgments
+
+- [WaveSurfer.js](https://wavesurfer-js.org/) for audio visualization
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [React](https://reactjs.org/) team for the amazing framework
+
 ---
 
-Made with ❤️ for audio professionals and music producers
+<p align="center">Made with ❤️ for audio professionals and music producers</p>

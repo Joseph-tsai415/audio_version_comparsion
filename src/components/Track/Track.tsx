@@ -22,21 +22,20 @@ export const Track: React.FC<TrackProps> = React.memo(({
   track,
   isHovered,
   onHover,
-  zoomLevel,
-  onZoom,
   isDragging,
   onDragStart,
   dragStart,
   selection,
   onMarkerAdd,
-  syncScrollEnabled,
-  scrollOffsetsRef,
 }) => {
   const { playbackState, seek, setActiveTrack, removeTrack } = useAudio();
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hoverTime, setHoverTime] = useState<number>(0);
+  const [hoverPosition, setHoverPosition] = useState<number>(0);
 
   const isActive = playbackState.activeTrackId === track.id;
 
@@ -46,7 +45,7 @@ export const Track: React.FC<TrackProps> = React.memo(({
       : 0
   ), [isActive, playbackState.currentTime, playbackState.duration]);
 
-  // Initialize WaveSurfer only when essential props change
+  // Initialize WaveSurfer
   useEffect(() => {
     if (!waveformRef.current || !track.url) return;
 
@@ -57,8 +56,8 @@ export const Track: React.FC<TrackProps> = React.memo(({
       cursorColor: 'transparent',
       barWidth: 2,
       barRadius: 2,
-      cursorWidth: 0.1,
-      height: 100,
+      cursorWidth: 0,
+      height: 80,
       barGap: 1,
       normalize: true,
       interact: true,
@@ -74,29 +73,18 @@ export const Track: React.FC<TrackProps> = React.memo(({
     wavesurfer.on('ready', () => {
       if (!isDestroyed) {
         setIsLoading(false);
-        console.log('WaveSurfer ready for track:', track.id);
-        // Apply initial zoom settings after ready
-        if (zoomLevel === 0 && containerRef.current) {
-          const width = containerRef.current.clientWidth - 20;
-          const newPxPerSec = width / wavesurfer.getDuration();
-          wavesurfer.setOptions({ minPxPerSec: newPxPerSec, fillParent: true });
-        } else if (zoomLevel > 0) {
-          wavesurfer.setOptions({ minPxPerSec: zoomLevel * 100, fillParent: false });
-        }
       }
     });
 
     wavesurfer.on('error', (error) => {
-      console.error('WaveSurfer error for track:', track.id, error);
+      console.error('WaveSurfer error:', error);
       setIsLoading(false);
     });
 
-    console.log('Loading WaveSurfer for track:', track.id, track.url);
     wavesurfer.load(track.url);
 
     return () => {
       isDestroyed = true;
-      console.log('Destroying WaveSurfer for track:', track.id);
       if (wavesurfer) {
         try {
           wavesurfer.destroy();
@@ -107,15 +95,14 @@ export const Track: React.FC<TrackProps> = React.memo(({
     };
   }, [track.url, track.id, track.color]);
 
-  // Handle interaction events separately
+  // Handle waveform clicks
   useEffect(() => {
     const wavesurfer = wavesurferRef.current;
     if (!wavesurfer) return;
 
     const handleInteraction = (newTime: number) => {
       if (!isDragging) {
-        const currentActive = playbackState.activeTrackId === track.id;
-        if (!currentActive) {
+        if (!isActive) {
           setActiveTrack(track.id);
         }
         seek(newTime);
@@ -127,22 +114,9 @@ export const Track: React.FC<TrackProps> = React.memo(({
     return () => {
       wavesurfer.un('interaction', handleInteraction);
     };
-  }, [isDragging, playbackState.activeTrackId, track.id, setActiveTrack, seek]);
+  }, [isDragging, isActive, track.id, setActiveTrack, seek]);
 
-  // Update zoom
-  useEffect(() => {
-    if (wavesurferRef.current) {
-      if (zoomLevel === 0) {
-        const width = containerRef.current?.clientWidth ? containerRef.current.clientWidth - 20 : 0;
-        const newPxPerSec = width / wavesurferRef.current.getDuration();
-        wavesurferRef.current.setOptions({ minPxPerSec: newPxPerSec, fillParent: true });
-      } else {
-        wavesurferRef.current.setOptions({ minPxPerSec: zoomLevel * 100, fillParent: false });
-      }
-    }
-  }, [zoomLevel]);
-
-  // Update playback progress on WaveSurfer
+  // Update playback progress
   useEffect(() => {
     if (wavesurferRef.current && isActive) {
       wavesurferRef.current.seekTo(progress);
@@ -152,32 +126,60 @@ export const Track: React.FC<TrackProps> = React.memo(({
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${String(secs).padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+  // Generate timeline marks
+  const timelineMarks = useMemo(() => {
+    if (!track.duration || track.duration === 0) return [];
     
-    // Account for the 1rem (16px) padding on each side and the anti-clipping margins
-    const padding = 16; // 1rem = 16px
-    const marginPercent = 8; // 8% margins (4% on each side)
-    const effectiveWidth = rect.width - (padding * 2);
-    const adjustedX = Math.max(0, Math.min(effectiveWidth, x - padding));
-    const percentage = adjustedX / effectiveWidth;
-    const time = percentage * track.duration;
-
-    const indicator = containerRef.current.querySelector('.time-indicator') as HTMLElement;
-    if (indicator) {
-      // Position indicator using the same calc formula as timeline
-      const indicatorPosition = padding + (percentage * (effectiveWidth * (100 - marginPercent) / 100));
-      indicator.style.left = `${indicatorPosition}px`;
-      indicator.textContent = formatTime(time);
+    const marks: number[] = [];
+    const duration = track.duration;
+    
+    // Determine step size based on duration
+    let step = 30;
+    if (duration <= 60) {
+      step = 10;
+    } else if (duration <= 180) {
+      step = 20;
+    } else if (duration <= 300) {
+      step = 30;
+    } else if (duration <= 600) {
+      step = 60;
+    } else {
+      step = 120;
     }
-  }, [track.duration, formatTime]);
-  
+    
+    // Generate marks
+    for (let time = 0; time <= duration; time += step) {
+      marks.push(time);
+    }
+    
+    // Always include the end time if not already included
+    if (marks[marks.length - 1] < duration) {
+      marks.push(duration);
+    }
+    
+    return marks;
+  }, [track.duration]);
+
+  // Handle mouse move for hover position
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!contentRef.current || !track.duration) return;
+
+    const rect = contentRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, x / rect.width));
+    const time = percentage * track.duration;
+    
+    setHoverPosition(percentage);
+    setHoverTime(time);
+  }, [track.duration]);
+
+  const handleMouseLeave = useCallback(() => {
+    onHover(null);
+  }, [onHover]);
+
   const handleMarkerClick = useCallback((time: number) => {
     if (!isActive) {
       setActiveTrack(track.id);
@@ -189,50 +191,17 @@ export const Track: React.FC<TrackProps> = React.memo(({
     removeTrack(track.id);
   }, [removeTrack, track.id]);
 
-  const timelineMarks = useMemo(() => {
-    if (!track.duration || track.duration === 0) return [];
-    
-    const marks: number[] = [];
-    const duration = Math.floor(track.duration);
-    
-    // Simple approach: create marks every 30 seconds for most tracks
-    let step = 30;
-    
-    // Adjust step based on duration
-    if (duration <= 120) { // 2 minutes or less
-      step = 15; // Every 15 seconds
-    } else if (duration <= 300) { // 5 minutes or less  
-      step = 30; // Every 30 seconds
-    } else if (duration <= 600) { // 10 minutes or less
-      step = 60; // Every minute
-    } else {
-      step = 120; // Every 2 minutes for long tracks
-    }
-    
-    // Always start with 0
-    marks.push(0);
-    
-    // Add intermediate marks
-    for (let time = step; time < duration; time += step) {
-      marks.push(time);
-    }
-    
-    // Always end with total duration
-    marks.push(duration);
-    
-    return marks;
-  }, [track.duration]);
-
   return (
-    <div className="mb-8 animate-slide-up relative group">
-      <div className="flex items-center justify-between mb-3">
+    <div className="h-full flex flex-col">
+      {/* Track header */}
+      <div className="flex items-center justify-between mb-2 px-4">
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: track.color }}></div>
-          <span className="text-surface-300 text-sm font-medium">{track.name}</span>
+          <span className="text-surface-300 text-sm font-medium truncate">{track.name}</span>
         </div>
         <div className="flex items-center gap-2">
           {isActive && (
-            <span className="text-primary-400 text-xs bg-primary-500/10 px-3 py-1 rounded-full">Active</span>
+            <span className="text-primary-400 text-xs bg-primary-500/10 px-2 py-0.5 rounded-full">Active</span>
           )}
           <button
             onClick={handleRemoveTrack}
@@ -246,207 +215,138 @@ export const Track: React.FC<TrackProps> = React.memo(({
         </div>
       </div>
 
+      {/* Main track container - Outside block with rounded border */}
       <div
         ref={containerRef}
-        className="relative bg-gradient-to-br from-surface-800/5 via-surface-900/15 to-surface-950/25 rounded-3xl border border-surface-700/15 hover:border-surface-600/30 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-700 backdrop-blur-2xl ring-1 ring-white/5"
+        data-track-id={track.id}
+        className="relative bg-gradient-to-br from-surface-800/5 via-surface-900/15 to-surface-950/25 rounded-2xl border border-surface-700/15 hover:border-surface-600/30 hover:shadow-xl transition-all duration-300 overflow-hidden flex-1 group"
         onMouseEnter={() => onHover(track.id)}
-        onMouseLeave={() => onHover(null)}
-        onMouseMove={handleMouseMove}
-        onWheel={onZoom}
+        onMouseLeave={handleMouseLeave}
         onMouseDown={(e) => onDragStart(e, track.id)}
-        style={{ overflow: 'hidden' }}
       >
-        <div className="relative pt-10 pb-4 px-4" style={{ overflowX: zoomLevel > 0 ? 'auto' : 'hidden' }}>
-          {/* Modern timeline with proper anti-clipping margins */}
-          <div className="absolute top-0 left-0 right-0 h-8 pointer-events-none z-10">
-            {/* Subtle baseline */}
-            <div className="absolute bottom-2 left-4 right-4 h-px bg-gradient-to-r from-transparent via-surface-600/30 to-transparent"></div>
-            
+        {/* Inner content area with consistent left/right spacing */}
+        <div 
+          ref={contentRef}
+          className="absolute inset-0 mx-4 flex flex-col"
+          onMouseMove={handleMouseMove}
+        >
+          {/* Top Section: Timeline */}
+          <div className="h-8 relative border-b border-surface-700/20">
             {timelineMarks.map((mark) => {
-              const position = (mark / track.duration) * 100;
-              const isEdge = position <= 5 || position >= 95;
-              
+              const percentage = track.duration > 0 ? mark / track.duration : 0;
               return (
                 <div
                   key={mark}
-                  className="absolute bottom-0 flex flex-col items-center"
-                  style={{ 
-                    left: `calc(1rem + ${position * (100 - 8)}%)`,
-                    transform: 'translateX(-50%)'
-                  }}
+                  className="absolute top-0 h-full flex items-end"
+                  style={{ left: `${percentage * 100}%` }}
                 >
-                  <div className={`w-0.5 h-3 ${isEdge ? 'bg-surface-500' : 'bg-surface-400/80'} rounded-full mb-1`}></div>
-                  <span className={`text-[11px] font-mono font-medium tracking-wide select-none transition-colors ${
-                    isEdge ? 'text-surface-300' : 'text-surface-400'
-                  }`}>
-                    {formatTime(mark)}
-                  </span>
+                  <div className="flex flex-col items-center transform -translate-x-1/2">
+                    <div className="w-px h-2 bg-surface-600/70"></div>
+                    <span className="text-[10px] text-surface-400 font-mono">
+                      {formatTime(mark)}
+                    </span>
+                  </div>
                 </div>
               );
             })}
           </div>
-          
-          <div ref={waveformRef} className="relative">
-          </div>
-          
-          {isLoading && (
-            <div className="absolute inset-0 bg-surface-900/50 backdrop-blur-sm flex items-center justify-center z-20">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-surface-400 text-sm">Loading waveform...</span>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {isActive && (
-          <div 
-            className="absolute top-10 bottom-4 pointer-events-none z-30"
-            style={{ 
-              left: '1rem',
-              right: '1rem',
-              overflowX: zoomLevel > 0 ? 'visible' : 'hidden'
-            }}
-          >
+          {/* Middle Section: Waveform */}
+          <div className="flex-1 py-2 relative">
             <div 
+              ref={waveformRef} 
+              className="w-full h-full"
+            />
+            
+            {/* Loading overlay */}
+            {isLoading && (
+              <div className="absolute inset-0 bg-surface-900/50 backdrop-blur-sm flex items-center justify-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-surface-400 text-sm">Loading waveform...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          
+
+          {/* Cursor - spanning from timeline bottom to bottom */}
+          {isActive && !isLoading && (
+            <div 
+              className="absolute top-8 -bottom-0  pointer-events-none z-20"
               style={{ 
-                width: zoomLevel > 0 ? `${zoomLevel * 100}%` : '100%',
-                minWidth: '100%',
-                position: 'relative',
-                height: '100%'
+                left: `${progress * 100}%`,
+                transform: 'translateX(-50%)',
               }}
             >
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-gradient-to-b from-white/90 to-white shadow-xl transition-all duration-300 rounded-full"
-                style={{
-                  left: `calc(${progress * (100 - 8)}%)`,
-                  opacity: playbackState.isPlaying ? 1 : 0.6,
-                }}
-              >
-                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gradient-to-br from-white to-surface-100 rounded-full shadow-xl ring-3 ring-white/30 backdrop-blur-sm"></div>
+              {/* Cursor head - positioned at timeline bottom border */}
+              <div className="absolute -top-2.5 w-3 h-3 bg-white rounded-full shadow-lg transform -translate-x-1/2">
+                <div className="absolute inset-0.5 bg-primary-500 rounded-full"></div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modern cursor time display */}
-        {isActive && (
-          <div 
-            className="absolute bottom-0 pointer-events-none z-50"
-            style={{ 
-              left: '1rem',
-              right: '1rem',
-              overflowX: zoomLevel > 0 ? 'visible' : 'hidden'
-            }}
-          >
-            <div 
-              style={{ 
-                width: zoomLevel > 0 ? `${zoomLevel * 100}%` : '100%',
-                minWidth: '100%',
-                position: 'relative'
-              }}
-            >
-              <div
-                className="absolute bottom-0 transform -translate-x-1/2 bg-gradient-to-br from-surface-900/95 to-surface-950/95 backdrop-blur-xl px-4 py-2 rounded-2xl text-sm font-mono font-bold text-white whitespace-nowrap shadow-2xl border border-surface-600/40 ring-1 ring-white/10"
+              
+              {/* Cursor body */}
+              <div 
+                className="absolute top-0 bottom-4 w-0.5 bg-white transform -translate-x-1/2"
                 style={{
-                  left: `calc(${progress * (100 - 8)}%)`,
+                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
                 }}
+              />
+              
+              {/* Current time display attached to cursor bottom */}
+              <div 
+                className="absolute bottom-0 bg-surface-900/90 px-2 py-0.5 rounded text-xs font-mono text-white transform -translate-x-1/2"
               >
                 {formatTime(playbackState.currentTime)}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="time-indicator absolute top-10 bg-gradient-to-br from-surface-900/90 to-surface-950/90 backdrop-blur-xl px-3 py-1.5 rounded-xl text-xs font-mono font-medium text-surface-200 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-40 shadow-lg border border-surface-700/40">
-          0:00
-        </div>
-
-        {isDragging && dragStart && selection && isActive && (
-          <div 
-            className="absolute top-10 bottom-4 pointer-events-none z-25"
-            style={{ 
-              left: '1rem',
-              right: '1rem',
-              overflowX: zoomLevel > 0 ? 'visible' : 'hidden'
-            }}
-          >
+          {/* Hover time indicator */}
+          {isHovered && !isLoading && (
             <div 
-              style={{ 
-                width: zoomLevel > 0 ? `${zoomLevel * 100}%` : '100%',
-                minWidth: '100%',
-                position: 'relative',
-                height: '100%'
+              className="absolute top-8 bg-surface-900/90 px-2 py-1 rounded text-xs font-mono text-white pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-40"
+              style={{
+                left: `${hoverPosition * 100}%`,
+                transform: 'translateX(-50%)',
               }}
             >
-              {/* Modern selection area */}
+              {formatTime(hoverTime)}
+            </div>
+          )}
+
+          {/* Selection area */}
+          {isDragging && dragStart && selection && isActive && (
+            <div
+              className="absolute top-8 bottom-6 bg-primary-400/20 border-x-2 border-primary-400/50 pointer-events-none"
+              style={{
+                left: `${(selection.start / track.duration) * 100}%`,
+                width: `${((selection.end - selection.start) / track.duration) * 100}%`,
+              }}
+            />
+          )}
+
+          {/* Markers */}
+          {track.markers.map((marker) => (
+            <div
+              key={marker.id}
+              className="absolute top-8 bottom-0 w-0.5 cursor-pointer group/marker hover:w-1 transition-all z-20"
+              style={{
+                left: `${(marker.time / track.duration) * 100}%`,
+                backgroundColor: marker.color,
+                transform: 'translateX(-50%)',
+              }}
+              onClick={() => handleMarkerClick(marker.time)}
+            >
               <div
-                className="absolute top-0 bottom-0 bg-gradient-to-r from-primary-400/25 via-primary-400/15 to-primary-400/25 border-x-2 border-primary-400/50 rounded-lg backdrop-blur-sm shadow-lg"
-                style={{
-                  left: `calc(${(selection.start / track.duration) * (100 - 8)}%)`,
-                  width: `calc(${((selection.end - selection.start) / track.duration) * (100 - 8)}%)`,
-                }}
+                className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full"
+                style={{ backgroundColor: marker.color }}
               />
-              {/* Modern drag cursor */}
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary-300 to-primary-500 shadow-xl z-10 transition-all duration-75 rounded-full"
-                style={{
-                  left: `calc(${(selection.end / track.duration) * (100 - 8)}%)`,
-                }}
-              >
-                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gradient-to-br from-primary-300 to-primary-600 rounded-full shadow-xl ring-3 ring-primary-300/40 backdrop-blur-sm"></div>
-                <div className="absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-br from-primary-700/95 to-primary-800/95 backdrop-blur-xl px-4 py-2 rounded-2xl text-sm font-mono font-bold text-white whitespace-nowrap shadow-2xl border border-primary-500/50 ring-1 ring-white/10">
-                  {formatTime(selection.end)}
-                </div>
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-surface-900 px-2 py-0.5 rounded text-xs text-white whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-opacity">
+                {marker.label}
               </div>
             </div>
-          </div>
-        )}
-
-        <div 
-          className="absolute top-10 bottom-4 pointer-events-none z-20"
-          style={{ 
-            left: '1rem',
-            right: '1rem',
-            overflowX: zoomLevel > 0 ? 'visible' : 'hidden'
-          }}
-        >
-          <div 
-            style={{ 
-              width: zoomLevel > 0 ? `${zoomLevel * 100}%` : '100%',
-              minWidth: '100%',
-              position: 'relative',
-              height: '100%'
-            }}
-          >
-            {track.markers.map((marker) => (
-              <div
-                key={marker.id}
-                className="absolute top-0 bottom-0 w-0.5 cursor-pointer group/marker pointer-events-auto transition-all duration-200 hover:w-1 rounded-full shadow-xl"
-                style={{
-                  left: `calc(${(marker.time / track.duration) * (100 - 8)}%)`,
-                  background: `linear-gradient(to bottom, ${marker.color}F0, ${marker.color}CC)`,
-                }}
-                onClick={() => handleMarkerClick(marker.time)}
-              >
-                <div
-                  className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full shadow-xl ring-3 ring-white/30 transition-all duration-200 group-hover/marker:w-5 group-hover/marker:h-5 group-hover/marker:ring-4 backdrop-blur-sm"
-                  style={{ 
-                    background: `radial-gradient(circle, ${marker.color}, ${marker.color}DD)`,
-                  }}
-                />
-                <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-br from-surface-900/95 to-surface-950/95 backdrop-blur-xl px-4 py-2 rounded-2xl text-sm font-mono font-bold text-white whitespace-nowrap opacity-0 group-hover/marker:opacity-100 transition-all duration-300 shadow-2xl border border-surface-600/40 ring-1 ring-white/10">
-                  <div 
-                    className="absolute top-full left-1/2 transform -translate-x-1/2 w-3 h-3 rotate-45 -mt-1.5 border-r border-b border-surface-600/40 backdrop-blur-xl"
-                    style={{ 
-                      background: `linear-gradient(135deg, ${marker.color}30, transparent)` 
-                    }}
-                  ></div>
-                  {marker.label}
-                </div>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     </div>
