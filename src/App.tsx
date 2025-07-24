@@ -60,17 +60,21 @@ function App() {
           </div>
         </header>
 
+        {/* Floating Control Panel */}
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30">
+          <PlaybackControls />
+        </div>
+
         {/* Main content */}
-        <main className="relative z-10 container mx-auto px-6 py-8">
-          <div className="grid grid-cols-10 gap-6 h-full">
-            {/* Left sidebar - 30% */}
-            <div className="col-span-3 flex flex-col gap-6">
+        <main className="relative z-10 container mx-auto px-6 py-6">
+          <div className="grid grid-cols-4 gap-6 h-full">
+            {/* Left sidebar - 25% */}
+            <div className="col-span-1">
               <TrackList />
-              <PlaybackControls />
             </div>
 
-            {/* Main content area - 70% */}
-            <div className="col-span-7 h-full">
+            {/* Main content area - 75% */}
+            <div className="col-span-3 h-full">
               <WaveformDisplay />
             </div>
           </div>
