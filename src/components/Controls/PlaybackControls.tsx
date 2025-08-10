@@ -110,7 +110,7 @@ export const PlaybackControls: React.FC = () => {
   const activeTrack = tracks.find(t => t.id === playbackState.activeTrackId);
 
   return (
-    <div className=" backdrop-blur-xl rounded-2xl px-6 py-4 border border-surface-800/50 shadow-2xl">
+    <div className="bg-surface-900/95 backdrop-blur-xl rounded-2xl px-6 py-4 border border-surface-800/50 shadow-2xl">
       {/* Compact floating control panel */}
       <div className="flex items-center gap-6">
         {/* Track Info - Compact */}

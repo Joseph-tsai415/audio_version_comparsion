@@ -66,7 +66,7 @@ function App() {
         </div>
 
         {/* Main content */}
-        <main className="relative z-10 container mx-auto px-6 py-6">
+        <main className="relative z-10 container mx-auto px-6 py-6 pb-32">
           <div className="grid grid-cols-4 gap-6 h-full">
             {/* Left sidebar - 25% */}
             <div className="col-span-1">

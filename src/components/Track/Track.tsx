@@ -192,7 +192,7 @@ export const Track: React.FC<TrackProps> = React.memo(({
   }, [removeTrack, track.id]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col group">
       {/* Track header */}
       <div className="flex items-center justify-between mb-2 px-4">
         <div className="flex items-center gap-3">
@@ -219,7 +219,7 @@ export const Track: React.FC<TrackProps> = React.memo(({
       <div
         ref={containerRef}
         data-track-id={track.id}
-        className="relative bg-gradient-to-br from-surface-800/5 via-surface-900/15 to-surface-950/25 rounded-2xl border border-surface-700/15 hover:border-surface-600/30 hover:shadow-xl transition-all duration-300 overflow-hidden flex-1 group"
+        className="relative bg-gradient-to-br from-surface-800/5 via-surface-900/15 to-surface-950/25 rounded-2xl border border-surface-700/15 hover:border-surface-600/30 hover:shadow-xl transition-all duration-300 overflow-hidden flex-1"
         onMouseEnter={() => onHover(track.id)}
         onMouseLeave={handleMouseLeave}
         onMouseDown={(e) => onDragStart(e, track.id)}
